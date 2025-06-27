@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Management System - App Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+        }
+
+        .page {
+            max-width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            page-break-after: always;
+            position: relative;
+        }
+
+        .page:last-child {
+            page-break-after: auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #2c5aa0;
+            padding-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2c5aa0;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #666;
+            font-style: italic;
+        }
+
+        h1 {
+            color: #2c5aa0;
+            font-size: 2.2em;
+            margin: 30px 0 20px 0;
+            border-left: 5px solid #2c5aa0;
+            padding-left: 15px;
+        }
+
+        h2 {
+            color: #34495e;
+            font-size: 1.8em;
+            margin: 25px 0 15px 0;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            color: #2c5aa0;
+            font-size: 1.4em;
+            margin: 20px 0 10px 0;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .highlight-box h2 {
+            color: white;
+            border: none;
+            margin-bottom: 15px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #2c5aa0;
+        }
+
+        .benefit-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .benefit-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #ecf0f1;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .benefit-list li:before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+            top: 10px;
+        }
+
+        .problem-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .problem-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #ecf0f1;
+            position: relative;
+            padding-left: 30px;
+            color: #e74c3c;
+        }
+
+        .problem-list li:before {
+            content: "❌";
+            position: absolute;
+            left: 0;
+            top: 10px;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .contact-info {
+            background: #2c5aa0;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .contact-info h3 {
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .timing-box {
+            background: #f1c40f;
+            color: #2c3e50;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .quote {
+            font-style: italic;
+            font-size: 1.1em;
+            color: #2c5aa0;
+            border-left: 4px solid #2c5aa0;
+            padding-left: 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            left: 40px;
+            right: 40px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            border-top: 1px solid #ecf0f1;
+            padding-top: 10px;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 20px;
+            right: 40px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media print {
+            body { background: white; }
+            .page { 
+                box-shadow: none; 
+                margin: 0;
+                max-width: none;
+                min-height: auto;
+            }
+        }
+
+        .download-note {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Page 1: Title & Overview -->
+<div class="page">
+    <div class="header">
+        <div class="logo">🎓 School Management System</div>
+        <div class="subtitle">Your Gateway to Academic Excellence</div>
+    </div>
+
+    <div class="download-note">
+        📄 To save as PDF: Press Ctrl+P (Windows) or Cmd+P (Mac) and select "Save as PDF"
+    </div>
+
+    <div class="highlight-box">
+        <h2>Opening Hook</h2>
+        <p style="font-size: 1.2em; line-height: 1.8;">
+            "Imagine never missing another assignment deadline, always knowing your child's attendance status, 
+            and having your entire academic journey in your pocket. Today, I'm excited to introduce you to 
+            the future of school management."
+        </p>
+    </div>
+
+    <h1>📋 The Problem We're Solving</h1>
+    
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3>👨‍👩‍👧‍👦 For Parents:</h3>
+            <ul class="problem-list">
+                <li>Endless phone calls to check progress</li>
+                <li>Scattered communication channels</li>
+                <li>Limited visibility into daily activities</li>
+                <li>Delayed report cards and updates</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>🎓 For Students:</h3>
+            <ul class="problem-list">
+                <li>Missing assignment deadlines</li>
+                <li>Uncertainty about attendance records</li>
+                <li>Difficulty tracking progress</li>
+                <li>Limited access to teacher feedback</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">School Management System App - Presentation Materials</div>
+    <div class="page-number">Page 1</div>
+</div>
+
+<!-- Page 2: Solution & Key Features -->
+<div class="page">
+    <h1>💡 Our Solution</h1>
+    
+    <div class="highlight-box">
+        <h2>The Ultimate School Management App</h2>
+        <p style="font-size: 1.1em;">A comprehensive, user-friendly mobile application that bridges the gap between school, students, and parents.</p>
+        <h3 style="color: white; margin-top: 20px;">One App. Three Perspectives. Unlimited Possibilities.</h3>
+    </div>
+
+    <h2>🎯 Key Features</h2>
+    
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Real-Time Academic Tracking</h3>
+            <ul class="benefit-list">
+                <li>Live grade updates</li>
+                <li>Quarterly performance visualization</li>
+                <li>Subject-wise progress tracking</li>
+                <li>GPA calculations in real-time</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">📅</div>
+            <h3>Smart Attendance Management</h3>
+            <ul class="benefit-list">
+                <li>Daily attendance tracking</li>
+                <li>Monthly visualization</li>
+                <li>Absence notifications to parents</li>
+                <li>Interactive attendance calendar</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🏫</div>
+            <h3>Official DepEd Integration</h3>
+            <ul class="benefit-list">
+                <li>DepEd-compliant format</li>
+                <li>Core, Applied, Specialized subjects</li>
+                <li>LRN integration</li>
+                <li>Downloadable reports</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">⭐</div>
+            <h3>Behavioral Monitoring</h3>
+            <ul class="benefit-list">
+                <li>Teacher comments</li>
+                <li>Behavioral ratings</li>
+                <li>Disciplinary records</li>
+                <li>Positive reinforcement tracking</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer">School Management System App - Presentation Materials</div>
+    <div class="page-number">Page 2</div>
+</div>
+
+<!-- Page 3: Benefits -->
+<div class="page">
+    <h1>🎁 Benefits That Matter</h1>
+    
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h2 style="color: #2c5aa0;">🎓 For Students</h2>
+            <h3>Academic Success</h3>
+            <ul class="benefit-list">
+                <li>Never miss assignments or exams</li>
+                <li>Track progress in real-time</li>
+                <li>Set and achieve academic goals</li>
+                <li>Access study materials anytime</li>
+            </ul>
+            
+            <h3>Digital Convenience</h3>
+            <ul class="benefit-list">
+                <li>Everything in one app</li>
+                <li>Offline access to important data</li>
+                <li>Push notifications for deadlines</li>
+                <li>Easy sharing with parents</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h2 style="color: #2c5aa0;">👨‍👩‍👧‍👦 For Parents</h2>
+            <h3>Complete Visibility</h3>
+            <ul class="benefit-list">
+                <li>Monitor attendance in real-time</li>
+                <li>Receive instant grade updates</li>
+                <li>Track behavioral development</li>
+                <li>Stay informed about school events</li>
+            </ul>
+            
+            <h3>Better Communication</h3>
+            <ul class="benefit-list">
+                <li>Direct line to teachers</li>
+                <li>Automated progress reports</li>
+                <li>Emergency notification system</li>
+                <li>Reduced need for school visits</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>🔒 Security & Privacy</h2>
+    <div class="feature-card">
+        <h3>Your Data is Safe With Us</h3>
+        <ul class="benefit-list">
+            <li>Bank-level encryption for all data</li>
+            <li>Role-based access control</li>
+            <li>No third-party data sharing</li>
+            <li>Secure login with biometric options</li>
+            <li>Regular security audits</li>
+        </ul>
+    </div>
+
+    <div class="footer">School Management System App - Presentation Materials</div>
+    <div class="page-number">Page 3</div>
+</div>
+
+<!-- Page 4: Why Choose Us & Success Stories -->
+<div class="page">
+    <h1>📊 Why Choose Our App?</h1>
+    
+    <div class="highlight-box">
+        <h2>Built for the Philippines</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+            <div>✅ DepEd Standards Compliant</div>
+            <div>✅ Filipino UI/UX Design</div>
+            <div>✅ Local Language Support</div>
+            <div>✅ Affordable Pricing</div>
+            <div>✅ 24/7 Customer Support</div>
+        </div>
+    </div>
+
+    <h2>🎊 Success Stories</h2>
+    
+    <div class="quote">
+        "Since using the app, my daughter's grades improved by 15%. I can track her attendance and communicate with teachers instantly!"
+        <br><strong>- Maria Santos, Parent</strong>
+    </div>
+    
+    <div class="quote">
+        "I never miss assignments anymore. The app reminds me of everything and helps me stay organized."
+        <br><strong>- Juan Carlos, Grade 10 Student</strong>
+    </div>
+
+    <h2>🚀 Getting Started</h2>
+    
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3>1. Download the App</h3>
+            <p>Available on Google Play Store and Apple App Store. Free download with premium features.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🔑</div>
+            <h3>2. Register with School Code</h3>
+            <p>Use your school's unique registration code. Verify with student ID or parent information.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3>3. Start Exploring</h3>
+            <p>Complete profile setup, customize notifications, and begin tracking your academic journey.</p>
+        </div>
+    </div>
+
+    <div class="footer">School Management System App - Presentation Materials</div>
+    <div class="page-number">Page 4</div>
+</div>
+
+<!-- Page 5: Call to Action & Contact -->
+<div class="page">
+    <div class="cta-box">
+        <h1 style="color: white; border: none; margin: 0 0 20px 0;">🚀 Ready to Transform Your Educational Experience?</h1>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
+            <div>
+                <h3 style="color: white;">For Schools:</h3>
+                <p>• Schedule a demo presentation<br>
+                • Request implementation timeline<br>
+                • Get pricing information</p>
+            </div>
+            <div>
+                <h3 style="color: white;">For Parents & Students:</h3>
+                <p>• Download the app today<br>
+                • Register for early access<br>
+                • Join our pilot program</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="contact-info">
+        <h3>📞 Contact Information</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div>📧 <strong>Email:</strong><br>info@schoolmanagementsystem.ph</div>
+            <div>📱 <strong>Phone:</strong><br>+63 2 8XXX-XXXX</div>
+            <div>🌐 <strong>Website:</strong><br>www.smsapp.ph</div>
+            <div>💬 <strong>Social Media:</strong><br>@SMSAppPH</div>
+        </div>
+    </div>
+
+    <h2>🎁 Launch Offer</h2>
+    <div class="feature-card" style="background: #e8f5e8; border-color: #27ae60;">
+        <ul class="benefit-list">
+            <li>First month FREE for early adopters</li>
+            <li>Free setup assistance and training</li>
+            <li>Premium features included in trial</li>
+        </ul>
+    </div>
+
+    <h2>❓ Common Questions</h2>
+    <div class="feature-card">
+        <ul>
+            <li><strong>How much does it cost?</strong> - Affordable monthly subscription starting at ₱99/month per student</li>
+            <li><strong>Is my data secure?</strong> - Yes, bank-level encryption and DepEd-compliant security standards</li>
+            <li><strong>What if my school doesn't participate?</strong> - We offer individual family plans with limited features</li>
+            <li><strong>How often is data updated?</strong> - Real-time updates as teachers input information</li>
+            <li><strong>Can multiple parents access one account?</strong> - Yes, up to 2 parent accounts per student</li>
+        </ul>
+    </div>
+
+    <div class="footer">School Management System App - Presentation Materials</div>
+    <div class="page-number">Page 5</div>
+</div>
+
+<!-- Page 6: Presentation Guide -->
+<div class="page">
+    <h1>📋 Presentation Guide</h1>
+
+    <div class="timing-box">
+        <h2>⏰ Timing Guide (10 minutes total)</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div>• <strong>Introduction:</strong> 30 seconds</div>
+            <div>• <strong>Problem Statement:</strong> 1 minute</div>
+            <div>• <strong>Solution Overview:</strong> 1 minute</div>
+            <div>• <strong>Feature Demo:</strong> 4-5 minutes</div>
+            <div>• <strong>Benefits:</strong> 1.5 minutes</div>
+            <div>• <strong>Security & Why Choose:</strong> 1 minute</div>
+            <div>• <strong>Getting Started & CTA:</strong> 1 minute</div>
+            <div>• <strong>Q&A:</strong> 2-3 minutes</div>
+        </div>
+    </div>
+
+    <h2>📱 Visual Aids Needed</h2>
+    <div class="feature-card">
+        <ul class="benefit-list">
+            <li>Live app demonstration on phone/tablet</li>
+            <li>Screenshots of key features</li>
+            <li>Sample progress reports</li>
+            <li>User testimonials</li>
+            <li>Pricing slides</li>
+        </ul>
+    </div>
+
+    <h2>🎯 Engagement Tips</h2>
+    <div class="feature-card">
+        <ul class="benefit-list">
+            <li>Ask audience questions during presentation</li>
+            <li>Use real student names (with permission)</li>
+            <li>Show actual grade improvements</li>
+            <li>Demonstrate live features</li>
+            <li>Encourage hands-on trial</li>
+            <li>Share success metrics</li>
+        </ul>
+    </div>
+
+    <div class="highlight-box">
+        <h2>🎯 Closing Statement</h2>
+        <p style="font-size: 1.1em; line-height: 1.8;">
+            "Education is the most powerful weapon which you can use to change the world. Our School Management System App puts that power directly in your hands. Together, let's build a brighter, more connected future for our students."
+        </p>
+        <p style="font-size: 1.2em; font-weight: bold; margin-top: 20px;">
+            "Thank you for your time. Let's make academic excellence accessible to everyone!"
+        </p>
+    </div>
+
+    <div class="footer">School Management System App - Presentation Materials</div>
+    <div class="page-number">Page 6</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,69 @@
+name: school_management_system
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.5.0
+  firebase_storage: ^12.4.5
+  firebase_messaging: ^15.2.5
+  provider: ^6.1.4
+  http: ^1.3.0
+  flutter_local_notifications: ^17.2.4
+  intl: ^0.20.2
+  font_awesome_flutter: ^10.8.0
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.1
+  dropdown_search: ^5.0.6
+  flutter_typeahead: ^5.2.0
+  google_sign_in: ^6.3.0
+  excel: ^2.0.0-nullsafety-3
+  open_file: ^3.3.2
+  fl_chart: ^1.0.0
+  cached_network_image: ^3.4.1
+  animate_do: ^4.2.0
+  flutter_svg: ^2.1.0
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  shared_preferences: ^2.5.3
+  share_plus: ^11.0.0
+  csv: ^6.0.0
+  permission_handler: ^11.0.1
+  file_picker: ^8.0.5
+  connectivity_plus: ^6.1.4
+  # google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/data/philippine_locations.json
+    - assets/images/PBTSLogo.png
+    - assets/images/pbtsimages.jpg
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+
+
+ 

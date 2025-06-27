@@ -1,0 +1,42 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "pbts-sms",
+          "appId": "1:157870938030:android:57ea27cbc24a4067941a3f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "pbts-sms",
+          "configurations": {
+            "android": "1:157870938030:android:57ea27cbc24a4067941a3f",
+            "ios": "1:157870938030:ios:7f42ee03bf20e42d941a3f",
+            "macos": "1:157870938030:ios:7f42ee03bf20e42d941a3f",
+            "web": "1:157870938030:web:bb1a5bd8c6bbf760941a3f",
+            "windows": "1:157870938030:web:3511f0f8cc636ccd941a3f"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ]
+}

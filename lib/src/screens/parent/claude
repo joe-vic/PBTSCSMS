@@ -1,0 +1,134 @@
+// ISSUE FIX: In parent_dashboard.dart, replace the _formatFullName method and student display logic
+
+// Current problematic method:
+String _formatFullName(Map<String, dynamic> info) {
+  final lastName = info['lastName'] as String? ?? '';
+  final firstName = info['firstName'] as String? ?? '';
+  final middleName = info['middleName'] as String? ?? '';
+  return '$lastName, $firstName${middleName.isNotEmpty ? ' $middleName' : ''}'.trim();
+}
+
+// FIXED VERSION - Add better error handling and debugging:
+String _formatFullName(Map<String, dynamic> info) {
+  // Debug logging to see what data we're getting
+  print('Student info received: $info');
+  
+  final lastName = info['lastName'] as String? ?? '';
+  final firstName = info['firstName'] as String? ?? '';
+  final middleName = info['middleName'] as String? ?? '';
+  
+  // If both first and last name are empty, return a more descriptive message
+  if (lastName.isEmpty && firstName.isEmpty) {
+    print('Warning: Student has no name data');
+    return 'Name not available';
+  }
+  
+  final fullName = '$lastName, $firstName${middleName.isNotEmpty ? ' $middleName' : ''}'.trim();
+  
+  // Clean up any trailing commas or extra spaces
+  return fullName.replaceAll(RegExp(r'^,\s*|,\s*$'), '').trim();
+}
+
+// ALSO UPDATE: The student summary section in the StreamBuilder to add better error handling
+
+StreamBuilder<QuerySnapshot>(
+  stream: FirebaseFirestore.instance
+      .collection('enrollments')
+      .where('parentId', isEqualTo: parentId)
+      .snapshots(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (snapshot.hasError) {
+      return Center(child: Text('Error: ${snapshot.error}'));
+    }
+    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Icon(Icons.person_off,
+                  size: 48,
+                  color: SMSTheme.primaryColor.withOpacity(0.5)),
+              const SizedBox(height: 16),
+              Text('No students enrolled yet',
+                  style: TextStyle(fontFamily: 'Poppins',
+                      fontSize: 16,
+                      color: SMSTheme.textSecondaryColor)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => EnrollmentFormScreen())),
+                child: Text('Enroll a Student', style: TextStyle(fontFamily: 'Poppins',)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    final enrollments = snapshot.data!.docs
+        .map((doc) {
+          try {
+            final data = doc.data() as Map<String, dynamic>;
+            print('Raw enrollment data: $data'); // Debug logging
+            return Enrollment.fromMap(data);
+          } catch (e) {
+            print('Error parsing enrollment: $e, Data: ${doc.data()}');
+            return null;
+          }
+        })
+        .whereType<Enrollment>()
+        .toList();
+        
+    if (enrollments.isEmpty) {
+      return Center(
+          child: Text('No valid enrollments found',
+              style: TextStyle(fontFamily: 'Poppins',)));
+    }
+    
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: enrollments.length,
+      itemBuilder: (context, index) {
+        final enrollment = enrollments[index];
+        final studentName = _formatFullName(enrollment.studentInfo);
+        
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: CircleAvatar(
+                backgroundColor: SMSTheme.primaryColor.withOpacity(0.2),
+                child: Icon(Icons.person, color: SMSTheme.primaryColor)),
+            title: Text(
+                studentName,
+                style: TextStyle(fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    color: SMSTheme.textPrimaryColor)),
+            subtitle: Text(
+                '${enrollment.studentInfo['gradeLevel'] ?? 'N/A'} • ${_toProperCase(enrollment.status)}',
+                style: TextStyle(fontFamily: 'Poppins',
+                    fontSize: 12,
+                    color: SMSTheme.textSecondaryColor)),
+            trailing: Chip(
+              label: Text(
+                  _toProperCase(enrollment.paymentStatus),
+                  style: TextStyle(fontFamily: 'Poppins',
+                      fontSize: 12,
+                      color: Colors.white)),
+              backgroundColor: _getPaymentStatusColor(enrollment.paymentStatus),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+            ),
+            onTap: () => _tabController.animateTo(1),
+          ),
+        );
+      },
+    );
+  },
+),
