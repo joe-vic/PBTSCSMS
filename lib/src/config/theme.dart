@@ -752,6 +752,19 @@ static ThemeData getTheme() => lightTheme;
       ),
 
       /// Card Theme (Enhanced from your original)
+      // cardTheme: CardThemeData(
+      //   elevation: 4,
+      //   shadowColor: elevationLight[0],
+      //   surfaceTintColor: primaryColor.withOpacity(0.02),
+      //   shape: RoundedRectangleBorder(
+      //     borderRadius: BorderRadius.circular(12),
+      //   ),
+      //   color: surfaceColor,
+      //   margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      // ),
+
+      /// Card Theme (Enhanced from your original)
+   /// Card Theme (Enhanced from your original)
       cardTheme: CardThemeData(
         elevation: 4,
         shadowColor: elevationLight[0],
@@ -762,7 +775,6 @@ static ThemeData getTheme() => lightTheme;
         color: surfaceColor,
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
-
       /// Button Themes (YOUR ORANGE COLORS as primary)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

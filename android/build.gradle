@@ -1,4 +1,4 @@
-buildscript {
+ buildscript {
     ext.kotlin_version = '1.9.20' // Updated to match your project's expected version
     repositories {
         google()

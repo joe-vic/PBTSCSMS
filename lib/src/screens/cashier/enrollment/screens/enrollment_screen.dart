@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-// REMOVED: import 'package:google_fonts/google_fonts.dart';
 import '../models/enrollment_form_state.dart';
 import '../services/enrollment_service.dart';
+import '../services/billing_service.dart';
 import '../widgets/student_info_form.dart';
 import '../widgets/parent_info_form.dart';
 import '../widgets/academic_info_form.dart';
@@ -26,18 +26,45 @@ class _CashierEnrollmentScreenImplState
 
   late EnrollmentFormState _formState;
   late EnrollmentService _enrollmentService;
+  late BillingService _billingService;
   int _currentStep = 0;
   bool _isProcessing = false;
   bool _isValidating = false;
   bool _isInitializing = true;
   bool _isFontLoaded = false;
-  final ScrollController _scrollController = ScrollController();
+  
   final GlobalKey<StudentInfoFormState> _studentInfoFormKey =
       GlobalKey<StudentInfoFormState>();
   final GlobalKey<ParentInfoFormState> _parentInfoFormKey =
       GlobalKey<ParentInfoFormState>();
-  final GlobalKey<FormState> _academicInfoFormKey = GlobalKey<FormState>();
-  final GlobalKey<FormState> _paymentInfoFormKey = GlobalKey<FormState>();
+
+  // Step configuration
+  final List<StepConfig> _stepConfigs = [
+    StepConfig(
+      title: 'Student Info',
+      shortTitle: 'Student',
+      icon: Icons.person,
+      description: 'Personal information',
+    ),
+    StepConfig(
+      title: 'Parent Info',
+      shortTitle: 'Parent',
+      icon: Icons.family_restroom,
+      description: 'Guardian details',
+    ),
+    StepConfig(
+      title: 'Academic',
+      shortTitle: 'Academic',
+      icon: Icons.school,
+      description: 'Grade and course',
+    ),
+    StepConfig(
+      title: 'Payment',
+      shortTitle: 'Payment',
+      icon: Icons.payment,
+      description: 'Fee structure',
+    ),
+  ];
 
   // Cache the text styles
   late TextStyle _titleStyle;
@@ -49,21 +76,29 @@ class _CashierEnrollmentScreenImplState
     super.initState();
     _formState = EnrollmentFormState();
     _enrollmentService = EnrollmentService();
-    _initializeScreen();
+    _billingService = BillingService();
+    
+    // Initialize without causing setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeScreen();
+    });
   }
 
   Future<void> _initializeScreen() async {
     try {
-      // Initialize text styles with a fallback
-      _titleStyle = TextStyle(fontFamily: 'Poppins',
+      // Initialize text styles
+      _titleStyle = TextStyle(
+        fontFamily: 'Poppins',
         fontWeight: FontWeight.w600,
         fontSize: 18,
       );
-      _buttonTextStyle = TextStyle(fontFamily: 'Poppins',
+      _buttonTextStyle = TextStyle(
+        fontFamily: 'Poppins',
         fontWeight: FontWeight.w500,
         fontSize: 14,
       );
-      _stepTitleStyle = TextStyle(fontFamily: 'Poppins',
+      _stepTitleStyle = TextStyle(
+        fontFamily: 'Poppins',
         fontSize: 14,
         fontWeight: FontWeight.w500,
       );
@@ -82,7 +117,6 @@ class _CashierEnrollmentScreenImplState
       if (mounted) {
         setState(() {
           _isInitializing = false;
-          // Even if font loading fails, we'll use system fonts
           _isFontLoaded = false;
         });
       }
@@ -90,248 +124,33 @@ class _CashierEnrollmentScreenImplState
   }
 
   @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  List<Step> get _enrollmentSteps => [
-        Step(
-          title: Text('Student Info', style: _getStepTitleStyle()),
-          content: StudentInfoForm(
-            key: _studentInfoFormKey,
-            formState: _formState,
-            onChanged: () => setState(() {}),
-            enabled: !_isProcessing,
-            scrollController: _scrollController,
-          ),
-          isActive: _currentStep >= 0,
-          state: _getStepState(0),
-        ),
-        Step(
-          title: Text('Parent Info', style: _getStepTitleStyle()),
-          content: ParentInfoForm(
-            key: _parentInfoFormKey,
-            formState: _formState,
-            onChanged: () => setState(() {}),
-            enabled: !_isProcessing,
-            scrollController: _scrollController,
-          ),
-          isActive: _currentStep >= 1,
-          state: _getStepState(1),
-        ),
-        Step(
-          title: Text('Academic', style: _getStepTitleStyle()),
-          content: AcademicInfoForm(
-            key: _academicInfoFormKey,
-            formState: _formState,
-            onChanged: () => setState(() {}),
-          ),
-          isActive: _currentStep >= 2,
-          state: _getStepState(2),
-        ),
-        Step(
-          title: Text('Payment', style: _getStepTitleStyle()),
-          content: PaymentInfoForm(
-            key: _paymentInfoFormKey,
-            formState: _formState,
-            onChanged: () => setState(() {}),
-          ),
-          isActive: _currentStep >= 3,
-          state: _getStepState(3),
-        ),
-      ];
-
-  TextStyle _getStepTitleStyle() {
-    if (!_isFontLoaded) {
-      // Fallback to system font if Google Fonts failed to load
-      return TextStyle(
-        fontSize: MediaQuery.of(context).size.width < 600 ? 12 : 14,
-        fontWeight: FontWeight.w500,
-      );
-    }
-    return _stepTitleStyle;
-  }
-
-  StepState _getStepState(int step) {
-    if (_currentStep > step) {
-      return StepState.complete;
-    } else if (_currentStep == step) {
-      // Only show error state if validation was explicitly attempted
-      if (!_isValidating) {
-        return StepState.indexed;
-      }
-
-      switch (step) {
-        case 0:
-          final studentFormState = _studentInfoFormKey.currentState;
-          if (studentFormState == null) return StepState.indexed;
-          // Don't call validateAndScroll here, just check the validation state
-          final isValid = studentFormState.validateAndScroll(context);
-          return isValid ? StepState.indexed : StepState.error;
-        case 1:
-          final parentFormState = _parentInfoFormKey.currentState;
-          if (parentFormState == null) return StepState.indexed;
-          // Don't call validateAndScroll here, just check the validation state
-          final isValid = parentFormState.validateAndScroll(context);
-          return isValid ? StepState.indexed : StepState.error;
-        default:
-          final formState = _formKeys[step].currentState;
-          if (formState == null) return StepState.indexed;
-          return formState.validate() ? StepState.indexed : StepState.error;
-      }
-    }
-    return StepState.indexed;
-  }
-
-  bool _validateCurrentStep() {
-    setState(() => _isValidating = true);
-
-    bool isValid = false;
-    try {
-      switch (_currentStep) {
-        case 0: // Student Info
-          final studentFormState = _studentInfoFormKey.currentState;
-          if (studentFormState == null) return false;
-
-          // Validate student form and check all required fields
-          isValid = studentFormState.validateAndScroll(context);
-
-          // Check if street address is filled
-          if (isValid && (_formState.streetAddress?.isEmpty ?? true)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Please fill in the Street Address field',
-                  style: TextStyle(fontFamily: 'Poppins',fontWeight: FontWeight.w500),
-                ),
-                backgroundColor: Colors.red.shade600,
-                behavior: SnackBarBehavior.floating,
-                margin: const EdgeInsets.all(16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            );
-            isValid = false;
-          }
-          break;
-
-        case 1: // Parent Info
-          final parentFormState = _parentInfoFormKey.currentState;
-          if (parentFormState == null) return false;
-          isValid = parentFormState.validateAndScroll(context);
-          break;
-
-        case 2: // Academic Info
-          final academicFormState = _academicInfoFormKey.currentState;
-          if (academicFormState == null) return false;
-          isValid = academicFormState.validate();
-          break;
-
-        case 3: // Payment Info
-          final paymentFormState = _paymentInfoFormKey.currentState;
-          if (paymentFormState == null) return false;
-          isValid = paymentFormState.validate();
-          break;
-
-        default:
-          isValid = false;
-          break;
-      }
-    } finally {
-      // Reset validation state after a delay only if validation failed
-      if (!isValid) {
-        Future.delayed(Duration(milliseconds: 300), () {
-          if (mounted) {
-            setState(() => _isValidating = false);
-          }
-        });
-      }
-    }
-
-    return isValid;
-  }
-
-  void _handleNext() {
-    if (_validateCurrentStep()) {
-      setState(() {
-        if (_currentStep < 3) {
-          _currentStep++;
-          // Reset validation state when moving to next step
-          _isValidating = false;
-        } else {
-          _handleSubmit();
-        }
-      });
-    }
-  }
-
-  Future<void> _handleSubmit() async {
-    if (_isProcessing) return;
-
-    final isValid = await _validateCurrentStep();
-    if (!isValid) return;
-
-    setState(() => _isProcessing = true);
-
-    try {
-      final enrollmentId =
-          await _enrollmentService.submitEnrollment(_formState);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Enrollment submitted successfully!',
-              style: TextStyle(fontFamily: 'Poppins',color: Colors.white),
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-        Navigator.pop(context, enrollmentId);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to submit enrollment: $e',
-              style: TextStyle(fontFamily: 'Poppins',color: Colors.white),
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     if (_isInitializing) {
-      return const Scaffold(
+      return Scaffold(
+        appBar: AppBar(title: Text('New Enrollment')),
         body: Center(
-          child: CircularProgressIndicator(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                'Initializing enrollment system...',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
+    final isWideScreen = screenWidth > 900;
 
     return Scaffold(
       appBar: AppBar(
@@ -339,6 +158,9 @@ class _CashierEnrollmentScreenImplState
           'New Enrollment',
           style: _titleStyle,
         ),
+        elevation: 2,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -353,114 +175,24 @@ class _CashierEnrollmentScreenImplState
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isWideScreen = constraints.maxWidth > 900;
             return Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: isWideScreen ? 900 : double.infinity,
                 ),
-                child: Stepper(
-                  type: isSmallScreen ? StepperType.vertical : StepperType.horizontal,
-                  currentStep: _currentStep,
-                  onStepContinue: (_isProcessing || _isValidating) ? null : _handleNext,
-                  onStepCancel: (_isProcessing || _isValidating)
-                      ? null
-                      : () {
-                          if (_currentStep > 0) {
-                            setState(() => _currentStep--);
-                          }
-                        },
-                  onStepTapped: (_isProcessing || _isValidating)
-                      ? null
-                      : (step) async {
-                          // Only allow tapping on previous steps if they're valid
-                          if (step < _currentStep) {
-                            setState(() => _currentStep = step);
-                          } else if (step > _currentStep) {
-                            // Validate all steps up to the target step
-                            for (var i = _currentStep; i < step; i++) {
-                              final isValid =
-                                  _formKeys[i].currentState?.validate() ?? false;
-                              if (!isValid) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Please complete step ${i + 1} first',
-                                      style: _buttonTextStyle,
-                                    ),
-                                    backgroundColor: Colors.red,
-                                    behavior: SnackBarBehavior.floating,
-                                    margin: const EdgeInsets.all(16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-                            }
-                            setState(() => _currentStep = step);
-                          }
-                        },
-                  controlsBuilder: (context, details) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 0),
-                      child: Row(
-                        children: [
-                          if (_currentStep > 0)
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: (_isProcessing || _isValidating)
-                                    ? null
-                                    : details.onStepCancel,
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Back',
-                                  style: _buttonTextStyle,
-                                ),
-                              ),
-                            ),
-                          if (_currentStep > 0) const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: (_isProcessing || _isValidating)
-                                  ? null
-                                  : details.onStepContinue,
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: _isProcessing || _isValidating
-                                  ? SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                          Theme.of(context).colorScheme.onPrimary,
-                                        ),
-                                      ),
-                                    )
-                                  : Text(
-                                      _currentStep == _enrollmentSteps.length - 1
-                                          ? 'Submit'
-                                          : 'Continue',
-                                      style: _buttonTextStyle,
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  steps: _enrollmentSteps,
+                child: Column(
+                  children: [
+                    // Custom Step Indicator
+                    _buildCustomStepIndicator(isSmallScreen),
+                    
+                    // Form Content
+                    Expanded(
+                      child: _buildCurrentForm(),
+                    ),
+                    
+                    // Navigation Controls
+                    _buildNavigationControls(),
+                  ],
                 ),
               ),
             );
@@ -469,4 +201,744 @@ class _CashierEnrollmentScreenImplState
       ),
     );
   }
+
+  Widget _buildCustomStepIndicator(bool isSmallScreen) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 8 : 16,
+        vertical: 16,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: isSmallScreen 
+          ? _buildVerticalStepIndicator()
+          : _buildHorizontalStepIndicator(),
+    );
+  }
+
+  Widget _buildHorizontalStepIndicator() {
+    return Row(
+      children: List.generate(_stepConfigs.length, (index) {
+        final isActive = index == _currentStep;
+        final isCompleted = index < _currentStep;
+        final isClickable = index <= _currentStep;
+        
+        return Expanded(
+          child: GestureDetector(
+            onTap: isClickable && !_isProcessing ? () => _jumpToStep(index) : null,
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 4),
+              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              decoration: BoxDecoration(
+                color: isActive 
+                    ? Theme.of(context).primaryColor 
+                    : isCompleted 
+                        ? Colors.green 
+                        : Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isActive 
+                      ? Theme.of(context).primaryColor 
+                      : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _stepConfigs[index].icon,
+                    color: isActive || isCompleted ? Colors.white : Colors.grey[600],
+                    size: 24,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '${index + 1}. ${_stepConfigs[index].shortTitle}',
+                    style: TextStyle(
+                      color: isActive || isCompleted ? Colors.white : Colors.grey[600],
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                      fontSize: 12,
+                      fontFamily: 'Poppins',
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (!isActive && !isCompleted) ...[
+                    SizedBox(height: 2),
+                    Text(
+                      _stepConfigs[index].description,
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 10,
+                        fontFamily: 'Poppins',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildVerticalStepIndicator() {
+    return Row(
+      children: List.generate(_stepConfigs.length, (index) {
+        final isActive = index == _currentStep;
+        final isCompleted = index < _currentStep;
+        
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 2),
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            decoration: BoxDecoration(
+              color: isActive 
+                  ? Theme.of(context).primaryColor 
+                  : isCompleted 
+                      ? Colors.green 
+                      : Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _stepConfigs[index].icon,
+                  color: isActive || isCompleted ? Colors.white : Colors.grey[600],
+                  size: 16,
+                ),
+                SizedBox(height: 2),
+                Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    color: isActive || isCompleted ? Colors.white : Colors.grey[600],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildCurrentForm() {
+    switch (_currentStep) {
+      case 0:
+        return StudentInfoForm(
+          key: _studentInfoFormKey,
+          formState: _formState,
+          onChanged: _safeOnChanged,
+          enabled: !_isProcessing,
+        );
+      case 1:
+        return ParentInfoForm(
+          key: _parentInfoFormKey,
+          formState: _formState,
+          onChanged: _safeOnChanged,
+          enabled: !_isProcessing,
+        );
+      case 2:
+        return Form(
+          key: _formKeys[2],
+          child: AcademicInfoForm(
+            formState: _formState,
+            onChanged: _safeOnChanged,
+          ),
+        );
+      case 3:
+        return Form(
+          key: _formKeys[3],
+          child: PaymentInfoForm(
+            formState: _formState,
+            onChanged: _safeOnChanged,
+          ),
+        );
+      default:
+        return Container(
+          child: Center(
+            child: Text('Invalid step'),
+          ),
+        );
+    }
+  }
+
+  Widget _buildNavigationControls() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (_currentStep > 0)
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: (_isProcessing || _isValidating) ? null : _handleBack,
+                icon: Icon(Icons.arrow_back, size: 18),
+                label: Text('Back'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          if (_currentStep > 0) const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: (_isProcessing || _isValidating) ? null : _handleNext,
+              icon: _isProcessing || _isValidating
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                    )
+                  : Icon(
+                      _currentStep == _stepConfigs.length - 1
+                          ? Icons.check
+                          : Icons.arrow_forward,
+                      size: 18,
+                    ),
+              label: Text(
+                _currentStep == _stepConfigs.length - 1
+                    ? 'Submit Enrollment'
+                    : 'Continue',
+                style: _buttonTextStyle,
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                backgroundColor: _currentStep == _stepConfigs.length - 1
+                    ? Colors.green
+                    : Theme.of(context).primaryColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _safeOnChanged() {
+    if (!mounted) return;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  void _jumpToStep(int step) {
+    if (step == _currentStep) return;
+    
+    setState(() {
+      _currentStep = step;
+      _isValidating = false;
+    });
+  }
+
+  void _handleBack() {
+    if (_currentStep > 0) {
+      setState(() {
+        _currentStep--;
+        _isValidating = false;
+      });
+    }
+  }
+
+  void _handleNext() {
+    if (_validateCurrentStep()) {
+      if (_currentStep < _stepConfigs.length - 1) {
+        setState(() {
+          _currentStep++;
+          _isValidating = false;
+        });
+      } else {
+        _handleSubmit();
+      }
+    }
+  }
+
+  bool _validateCurrentStep() {
+    bool isValid = false;
+    
+    try {
+      switch (_currentStep) {
+        case 0: // Student Info
+          final studentFormState = _studentInfoFormKey.currentState;
+          if (studentFormState == null) return false;
+          
+          isValid = studentFormState.validateAndScroll(context);
+          
+          if (isValid && (_formState.streetAddress?.isEmpty ?? true)) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _showErrorMessage('Please fill in the Street Address field');
+              }
+            });
+            isValid = false;
+          }
+          break;
+
+        case 1: // Parent Info
+          final parentFormState = _parentInfoFormKey.currentState;
+          if (parentFormState == null) return false;
+          isValid = parentFormState.validateAndScroll(context);
+          break;
+
+        case 2: // Academic Info
+          final academicFormState = _formKeys[2].currentState;
+          if (academicFormState == null) return false;
+          
+          isValid = academicFormState.validate();
+          
+          if (isValid) {
+            if (_formState.gradeLevel == null || _formState.gradeLevel!.isEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _showErrorMessage('Please select a grade level');
+                }
+              });
+              isValid = false;
+            } else if (_formState.branch == null || _formState.branch!.isEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _showErrorMessage('Please select a branch');
+                }
+              });
+              isValid = false;
+            } else if (_formState.academicYear == null || _formState.academicYear!.isEmpty) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _showErrorMessage('Please select an academic year');
+                }
+              });
+              isValid = false;
+            }
+          }
+          break;
+
+        case 3: // Payment Info
+          final paymentFormState = _formKeys[3].currentState;
+          if (paymentFormState == null) return false;
+          isValid = paymentFormState.validate();
+          
+          if (isValid) {
+            if (_formState.calculatedTotalAmountDue <= 0) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _showErrorMessage('Please configure the fee amounts');
+                }
+              });
+              isValid = false;
+            } else if (_formState.initialPaymentAmount < 
+                      _formState.getMinimumPayment(_formState.calculatedTotalAmountDue)) {
+              final minAmount = _formState.getMinimumPayment(_formState.calculatedTotalAmountDue);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _showErrorMessage(
+                    'Minimum payment of ₱${minAmount.toStringAsFixed(0)} required for ${_formState.paymentScheme}'
+                  );
+                }
+              });
+              isValid = false;
+            }
+          }
+          break;
+      }
+    } catch (e) {
+      print('Validation error: $e');
+      isValid = false;
+    }
+
+    if (!isValid && !_isValidating) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _isValidating = true);
+          Future.delayed(Duration(milliseconds: 300), () {
+            if (mounted) {
+              setState(() => _isValidating = false);
+            }
+          });
+        }
+      });
+    }
+
+    return isValid;
+  }
+
+  Future<void> _handleSubmit() async {
+    if (_isProcessing) return;
+
+    final isValid = _validateCurrentStep();
+    if (!isValid) return;
+
+    setState(() => _isProcessing = true);
+
+    try {
+      _showProgressDialog();
+
+      final studentId = await _enrollmentService.submitEnrollment(_formState);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      String successMessage = 'Enrollment submitted successfully!\n\n';
+      successMessage += '🎓 Student ID: $studentId\n';
+      successMessage += '💰 Total Amount: ₱${_formState.calculatedTotalAmountDue.toStringAsFixed(2)}\n';
+      
+      if (_formState.initialPaymentAmount > 0) {
+        successMessage += '💳 Initial Payment: ₱${_formState.initialPaymentAmount.toStringAsFixed(2)}\n';
+        successMessage += '🧾 Official Receipt: OR-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}\n';
+        
+        final balance = _formState.balance;
+        if (balance > 0) {
+          successMessage += '⚖️ Remaining Balance: ₱${balance.toStringAsFixed(2)}';
+        } else {
+          successMessage += '✅ Payment Complete - No remaining balance';
+        }
+      } else {
+        successMessage += '📋 Payment pending - Please proceed to cashier';
+      }
+
+      if (mounted) {
+        _showSuccessDialog(studentId, successMessage);
+      }
+    } catch (e) {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      print('Enrollment submission error: $e');
+      
+      if (mounted) {
+        String errorMessage = 'Failed to submit enrollment.';
+        
+        if (e.toString().contains('billing')) {
+          errorMessage = 'Enrollment created but billing setup failed. Please contact administration.';
+        } else if (e.toString().contains('payment')) {
+          errorMessage = 'Enrollment created but initial payment recording failed. Please contact administration.';
+        } else if (e.toString().contains('network') || e.toString().contains('connection')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (e.toString().contains('permission')) {
+          errorMessage = 'Access denied. Please check your permissions.';
+        }
+
+        _showErrorDialog(errorMessage, e.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  void _showProgressDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).primaryColor,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Processing Enrollment...',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Creating student record and billing information',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog(String studentId, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 28,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Enrollment Successful!',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Container(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green[200]!),
+                    ),
+                    child: Text(
+                      message,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'What\'s next?',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '• Student record has been created\n'
+                    '• Billing information is set up\n'
+                    '• Student can now access school services\n'
+                    '• Payment schedule is available in student portal',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(studentId);
+              },
+              child: Text(
+                'Continue',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green[700],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog(String message, String details) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 28,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Enrollment Error',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red[700],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Container(
+            width: double.maxFinite,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Text(
+                    message,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                if (details.isNotEmpty) ...[
+                  SizedBox(height: 12),
+                  ExpansionTile(
+                    title: Text(
+                      'Technical Details',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text(
+                          details,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Try Again',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red[700],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w500),
+        ),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        duration: Duration(seconds: 4),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+}
+
+// Step configuration class
+class StepConfig {
+  final String title;
+  final String shortTitle;
+  final IconData icon;
+  final String description;
+
+  StepConfig({
+    required this.title,
+    required this.shortTitle,
+    required this.icon,
+    required this.description,
+  });
 }

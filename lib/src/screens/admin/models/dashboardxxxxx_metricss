@@ -1,0 +1,35 @@
+class DashboardMetrics {
+  final double totalRevenue;
+  final double thisMonthRevenue;
+  final Map<String, int> studentsByGradeLevel;
+  final int totalStudents;
+  final int totalTeachers;
+  final int totalCourses;
+  final int pendingEnrollments;
+  final int activeEnrollments;
+
+  const DashboardMetrics({
+    this.totalRevenue = 0.0,
+    this.thisMonthRevenue = 0.0,
+    this.studentsByGradeLevel = const {},
+    this.totalStudents = 0,
+    this.totalTeachers = 0,
+    this.totalCourses = 0,
+    this.pendingEnrollments = 0,
+    this.activeEnrollments = 0,
+  });
+
+  // Or if you want to keep some required:
+  /*
+  const DashboardMetrics({
+    required this.totalRevenue,
+    required this.thisMonthRevenue,
+    required this.studentsByGradeLevel,
+    this.totalStudents = 0,
+    this.totalTeachers = 0,
+    this.totalCourses = 0,
+    this.pendingEnrollments = 0,
+    this.activeEnrollments = 0,
+  });
+  */
+}

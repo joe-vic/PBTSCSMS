@@ -1,0 +1,220 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // --- Helper Functions ---
+    // Helper function to get user role with fallback
+    function getUserRole() {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc.data != null && userDoc.data.role != null ? userDoc.data.role : 'none';
+    }
+    
+    // Check if user is an admin
+    function isAdmin() {
+      return request.auth != null && getUserRole() == 'admin';
+    }
+    
+    // Check if user is a supervisor or higher
+    function isSupervisor() {
+      return request.auth != null && 
+        (getUserRole() == 'admin' || getUserRole() == 'registrar');
+    }
+    
+    // Check if user is a cashier or higher
+    function isCashier() {
+      return request.auth != null && 
+        (getUserRole() == 'admin' || getUserRole() == 'registrar' || getUserRole() == 'cashier');
+    }
+    
+    // Check if user is a teacher
+    function isTeacher() {
+      return request.auth != null && getUserRole() == 'teacher';
+    }
+    
+    // Check if user is the creator of a document
+    function isCreator(resource) {
+      return request.auth != null && 
+        (resource.data.parentId == request.auth.uid || resource.data.cashierId == request.auth.uid);
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // --- Students Collection ---
+    match /students/{studentId} {
+      allow read: if request.auth != null && 
+        (resource.data.parentId == request.auth.uid || isCashier() || isTeacher());
+      allow create: if request.auth != null && 
+        (request.resource.data.parentId == request.auth.uid || isCashier());
+      allow update, delete: if request.auth != null && 
+        (resource.data.parentId == request.auth.uid || isCashier());
+    }
+
+    // --- Enrollments Collection ---
+    match /enrollments/{enrollmentId} {
+      allow read: if request.auth != null && 
+        (resource.data.submittedBy == request.auth.uid || 
+         resource.data.parentId == request.auth.uid || 
+         isCashier() || isTeacher());
+      allow create: if request.auth != null && 
+        (request.resource.data.submittedBy == request.auth.uid || 
+         request.resource.data.parentId == request.auth.uid || 
+         isCashier());
+      allow update: if request.auth != null && 
+        (resource.data.submittedBy == request.auth.uid || 
+         resource.data.parentId == request.auth.uid || 
+         isCashier());
+      allow delete: if request.auth != null && 
+        (resource.data.submittedBy == request.auth.uid || 
+         resource.data.parentId == request.auth.uid || 
+         isAdmin());
+    }
+
+    // --- Payments Collection ---
+    match /payments/{paymentId} {
+      allow read: if request.auth != null && 
+        (resource.data.studentId != null && 
+        get(/databases/$(database)/documents/students/$(resource.data.studentId)).data.parentId == request.auth.uid || 
+        isCashier());
+      allow create, update: if request.auth != null && isCashier();
+      allow delete: if isAdmin();
+    }
+    
+    // --- Classes Collection (Teachers can create and manage their classes) ---
+    match /classes/{classId} {
+      allow read: if request.auth != null && (isTeacher() || isCashier() || isAdmin());
+      allow create, update: if request.auth != null && (isTeacher() || isAdmin());
+      allow delete: if request.auth != null && isAdmin();
+    }
+    
+    // --- Class-related Collections for Teachers ---
+    match /classrooms/{classroomId} {
+      allow read, write: if request.auth != null && (isTeacher() || isAdmin());
+    }
+    
+    match /classSubjects/{subjectId} {
+      allow read, write: if request.auth != null && (isTeacher() || isAdmin());
+    }
+    
+    match /classSchedules/{scheduleId} {
+      allow read, write: if request.auth != null && (isTeacher() || isAdmin());
+    }
+    
+    match /attendance/{attendanceId} {
+      allow read, write: if request.auth != null && (isTeacher() || isCashier());
+    }
+    
+    match /grades/{gradeId} {
+      allow read, write: if request.auth != null && (isTeacher() || isCashier());
+    }
+    
+    match /assignments/{assignmentId} {
+      allow read, write: if request.auth != null && (isTeacher() || isCashier());
+    }
+    
+    // --- Core Reference Data (FIXED - Allow cashiers to read) ---
+    match /gradeLevels/{gradeLevelId} {
+      allow read: if request.auth != null && (isAdmin() || isTeacher() || isCashier());
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if request.auth != null && (isAdmin() || isTeacher() || isCashier());
+      allow write: if isAdmin();
+    }
+
+    match /strands/{strandId} {
+      allow read: if request.auth != null && (isAdmin() || isTeacher() || isCashier());
+      allow write: if isAdmin();
+    }
+
+    match /courses/{courseId} {
+      allow read: if request.auth != null && (isAdmin() || isTeacher() || isCashier());
+      allow write: if isAdmin();
+    }
+
+    match /branches/{branchId} {
+      allow read: if request.auth != null && (isAdmin() || isTeacher() || isCashier());
+      allow write: if isAdmin();
+    }
+    
+    // --- Fee Structures ---
+    match /feeStructures/{document} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // --- Admin Settings Collection (UPDATED for subcollections) ---
+    match /adminSettings/{settingId} {
+      allow read: if request.auth != null && 
+        (settingId in ['feeConfiguration', 'tuitionConfiguration', 'paymentConfiguration', 'paymentSchemes'] || isCashier());
+      allow write: if request.auth != null && isAdmin();
+      
+      // ADDED: Rules for subcollections within adminSettings
+      match /gradeLevels/{gradeId} {
+        allow read: if request.auth != null;
+        allow write: if isAdmin();
+        
+        // ADDED: Rules for miscFees subcollection
+        match /miscFees/{feeId} {
+          allow read: if request.auth != null;
+          allow write: if isAdmin();
+        }
+      }
+    }
+
+    // --- Billing ---
+    match /billing/{billingId} {
+      allow read: if request.auth != null && 
+        (get(/databases/$(database)/documents/students/$(resource.data.studentId)).data.parentId == request.auth.uid || 
+         isCashier());
+      allow write: if request.auth != null && 
+        (get(/databases/$(database)/documents/students/$(resource.data.studentId)).data.parentId == request.auth.uid || 
+         isCashier());
+    }
+
+    // --- Notifications ---
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && 
+        (resource.data.recipientId == request.auth.uid || 
+         resource.data.recipientRoles.hasAny([getUserRole()]) || isTeacher());
+      allow write: if isSupervisor() || isTeacher();
+    }
+
+    // --- Settings ---
+    match /settings/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // --- Pending Enrollments, Enrolled Students, Transactions ---
+    match /pending_enrollments/{document} {
+      allow read: if isCashier();
+      allow write: if isCashier();
+    }
+    match /enrolled_students/{document} {
+      allow read: if isCashier();
+      allow write: if isCashier();
+    }
+    match /transactions/{document} {
+      allow read: if isCashier();
+      allow write: if isCashier();
+    }
+
+    // --- Fees ---
+    match /fees/{feeId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // --- Expenses ---
+    match /expenses/{expenseId} {
+      allow read: if isCashier();
+      allow create, update: if isCashier();
+      allow delete: if isCashier();
+    }
+  }
+}

@@ -5,7 +5,6 @@ import 'firebase_options.dart';
 
 import 'src/config/theme.dart';
 import 'src/providers/auth_provider.dart';
-import 'src/providers/dashboard_provider.dart';
 import 'src/services/firestore_service.dart';
 
 // Screens
@@ -19,6 +18,9 @@ import 'src/screens/auth/user_type_selection_screen.dart';
 import 'src/screens/auth/user_registration_screen.dart';
 import 'src/screens/auth/parent_registration_screen.dart';
 import 'src/screens/auth/student_registration_screen.dart';
+ 
+// // REMOVED: import 'package:google_fonts/google_fonts.dart'; // If you still have this dependency
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +28,8 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+ 
+  //  GoogleFonts.config.allowRuntimeFetching = false;
   runApp(const MyApp());
 }
 
@@ -37,7 +41,6 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
         Provider<FirestoreService>(create: (_) => FirestoreService()),
       ],
       child: MaterialApp(

@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'dart:developer' as developer;
 import '../providers/auth_provider.dart' as LocalAuthProvider;
 import '../utils/login_error_handler.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -196,88 +197,62 @@ class AuthService {
     }
   }
 
-  // ENHANCED: Better Google Sign-In with new user detection
+ // ENHANCED: Better Google Sign-In with new user detection
   static Future<AuthResult> loginWithGoogle({
     required BuildContext context,
   }) async {
     developer.log('🚀 Starting Google Sign-In', name: 'AuthService');
 
     try {
-      final authProvider =
-          Provider.of<LocalAuthProvider.AuthProvider>(context, listen: false);
+      if (kIsWeb) {
+        // ✅ WEB FLOW
+        GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        final userCredential =
+            await _auth.signInWithPopup(googleProvider);
 
-      // Get the current user before sign-in attempt
-      final userBeforeSignIn = authProvider.user;
-      developer.log(
-          '👤 User before sign-in: ${userBeforeSignIn?.email ?? 'null'}',
-          name: 'AuthService');
+        final user = userCredential.user;
+        if (user == null) {
+          return AuthResult.failure('Google sign-in failed on Web.');
+        }
 
-      // Attempt Google Sign-In
-      await authProvider.signInWithGoogle();
+        // Handle new vs existing Google users in Firestore
+        return await _handleGoogleUser(
+          user.uid,
+          user.email ?? '',
+          user.displayName ?? 'User',
+        );
+      } else {
+        // ✅ MOBILE FLOW
+        final authProvider =
+            Provider.of<LocalAuthProvider.AuthProvider>(context, listen: false);
 
-      // Get user after sign-in attempt
-      final userAfterSignIn = authProvider.user;
-      developer.log(
-          '👤 User after sign-in: ${userAfterSignIn?.email ?? 'null'}',
-          name: 'AuthService');
+        final userBeforeSignIn = authProvider.user;
 
-      // Check if sign-in was successful
-      if (userAfterSignIn == null) {
-        developer.log('❌ Google Sign-In returned null user - likely canceled',
-            name: 'AuthService');
-        return AuthResult.googleSignInCanceled();
+        await authProvider.signInWithGoogle();
+
+        final userAfterSignIn = authProvider.user;
+
+        if (userAfterSignIn == null) {
+          return AuthResult.googleSignInCanceled();
+        }
+
+        if (userBeforeSignIn?.uid == userAfterSignIn.uid &&
+            userBeforeSignIn != null) {
+          return AuthResult.googleSignInCanceled();
+        }
+
+        return await _handleGoogleUser(
+          userAfterSignIn.uid,
+          userAfterSignIn.email ?? '',
+          userAfterSignIn.displayName ?? 'User',
+        );
       }
-
-      // Check if user actually changed (successful sign-in)
-      if (userBeforeSignIn?.uid == userAfterSignIn.uid &&
-          userBeforeSignIn != null) {
-        developer.log('⚠️ Same user before and after - possible cancellation',
-            name: 'AuthService');
-        return AuthResult.googleSignInCanceled();
-      }
-
-      final userId = userAfterSignIn.uid;
-      final userEmail = userAfterSignIn.email ?? '';
-      final userName = userAfterSignIn.displayName ?? 'User';
-
-      developer.log('🔍 Checking if user is new or existing: $userEmail', name: 'AuthService');
-
-      // ENHANCED: Check if this is a new user and handle accordingly
-      final userResult = await _handleGoogleUser(userId, userEmail, userName);
-      
-      return userResult;
-
     } catch (e) {
-      final errorString = e.toString().toLowerCase();
       developer.log('❌ Google Sign-In exception: $e', name: 'AuthService');
-
-      // Check for specific cancellation patterns
-      if (errorString.contains('sign_in_canceled') ||
-          errorString.contains('canceled') ||
-          errorString.contains('cancelled') ||
-          errorString.contains('aborted_by_user') ||
-          errorString.contains('user_canceled')) {
-        developer.log('🚫 Google Sign-In canceled by user',
-            name: 'AuthService');
-        return AuthResult.googleSignInCanceled();
-      }
-
-      // Handle other Google Sign-In errors
-      if (errorString.contains('network')) {
-        return AuthResult.failure('Network error during Google sign-in. Please check your connection.');
-      }
-
-      // For any other errors, try to create a helpful login exception
-      try {
-        final loginException = LoginErrorHandler.handleAuthError(e);
-        return AuthResult.loginException(loginException);
-      } catch (handlerError) {
-        // If the error handler fails, return a generic message
-        return AuthResult.failure('Google sign-in failed. Please try again or use email login.');
-      }
+      return AuthResult.failure(
+          'Google sign-in failed: ${e.toString()}');
     }
   }
-
   // NEW: Enhanced method to handle Google users (new vs existing)
   static Future<AuthResult> _handleGoogleUser(String userId, String email, String name) async {
     try {
